@@ -1,0 +1,146 @@
+{
+  "name": "tiny-tanks-time",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "app",
+  "sourceRoot": "apps/tiny-tanks-time/src",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@angular-devkit/build-angular:browser",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/tiny-tanks-time/browser",
+        "index": "apps/tiny-tanks-time/src/index.html",
+        "main": "apps/tiny-tanks-time/src/main.ts",
+        "polyfills": ["zone.js"],
+        "tsConfig": "apps/tiny-tanks-time/tsconfig.app.json",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/tiny-tanks-time/public"
+          }
+        ],
+        "styles": ["apps/tiny-tanks-time/src/styles.css"]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "500kb",
+              "maximumError": "1mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "buildOptimizer": false,
+          "optimization": false,
+          "vendorChunk": true,
+          "extractLicenses": false,
+          "sourceMap": true,
+          "namedChunks": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular-devkit/build-angular:dev-server",
+      "configurations": {
+        "production": {
+          "buildTarget": "tiny-tanks-time:build:production"
+        },
+        "development": {
+          "buildTarget": "tiny-tanks-time:build:development"
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "extract-i18n": {
+      "executor": "@angular-devkit/build-angular:extract-i18n",
+      "options": {
+        "buildTarget": "tiny-tanks-time:build"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/tiny-tanks-time/jest.config.ts",
+        "tsConfig": "apps/tiny-tanks-time/tsconfig.spec.json"
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "tiny-tanks-time:build",
+        "spa": true
+      }
+    },
+    "server": {
+      "dependsOn": ["build"],
+      "executor": "@angular-devkit/build-angular:server",
+      "options": {
+        "outputPath": "dist/apps/tiny-tanks-time/server",
+        "main": "apps/tiny-tanks-time/src/server.ts",
+        "tsConfig": "apps/tiny-tanks-time/tsconfig.server.json"
+      },
+      "configurations": {
+        "production": {
+          "outputHashing": "media"
+        },
+        "development": {
+          "buildOptimizer": false,
+          "optimization": false,
+          "sourceMap": true,
+          "extractLicenses": false,
+          "vendorChunk": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve-ssr": {
+      "continuous": true,
+      "executor": "@angular-devkit/build-angular:ssr-dev-server",
+      "configurations": {
+        "development": {
+          "browserTarget": "tiny-tanks-time:build:development",
+          "serverTarget": "tiny-tanks-time:server:development"
+        },
+        "production": {
+          "browserTarget": "tiny-tanks-time:build:production",
+          "serverTarget": "tiny-tanks-time:server:production"
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "prerender": {
+      "executor": "@angular-devkit/build-angular:prerender",
+      "options": {
+        "routes": ["/"]
+      },
+      "configurations": {
+        "development": {
+          "browserTarget": "tiny-tanks-time:build:development",
+          "serverTarget": "tiny-tanks-time:server:development"
+        },
+        "production": {
+          "browserTarget": "tiny-tanks-time:build:production",
+          "serverTarget": "tiny-tanks-time:server:production"
+        }
+      },
+      "defaultConfiguration": "production"
+    }
+  }
+}
