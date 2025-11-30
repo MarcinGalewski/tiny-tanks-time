@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
-import { Player, Bullet } from './game.component';
+import { Player, Bullet, Orb, Upgrade } from './game.component';
 
 @Injectable({
   providedIn: 'root'
@@ -10,16 +10,21 @@ export class GameService {
   private socket: Socket;
   private playerId: string | null = null;
 
-  private gameStateSubject = new BehaviorSubject<{ players: Player[], bullets: Bullet[] }>({
+  private gameStateSubject = new BehaviorSubject<{ players: Player[], bullets: Bullet[], orbs: Orb[] }>({
     players: [],
-    bullets: []
+    bullets: [],
+    orbs: []
   });
 
   private playerJoinedSubject = new BehaviorSubject<Player | null>(null);
   private playerLeftSubject = new BehaviorSubject<string | null>(null);
-  private playerMovedSubject = new BehaviorSubject<any>(null);
+  private playerMovedSubject = new BehaviorSubject<Player | null>(null);
   private bulletShotSubject = new BehaviorSubject<Bullet | null>(null);
   private bulletRemovedSubject = new BehaviorSubject<string | null>(null);
+  private orbSpawnedSubject = new BehaviorSubject<Orb | null>(null);
+  private orbCollectedSubject = new BehaviorSubject<string | null>(null);
+  private levelUpOptionsSubject = new BehaviorSubject<Upgrade[] | null>(null);
+  private playerImmunitySubject = new BehaviorSubject<{id: string, immuneUntil: number} | null>(null);
 
   constructor() {
     this.socket = io('http://localhost:3000', {
@@ -59,6 +64,22 @@ export class GameService {
     this.socket.on('bulletRemoved', (bulletId) => {
       this.bulletRemovedSubject.next(bulletId);
     });
+
+    this.socket.on('orbSpawned', (orb) => {
+      this.orbSpawnedSubject.next(orb);
+    });
+
+    this.socket.on('orbCollected', (orbId) => {
+      this.orbCollectedSubject.next(orbId);
+    });
+
+    this.socket.on('levelUpOptions', (options) => {
+      this.levelUpOptionsSubject.next(options);
+    });
+
+    this.socket.on('playerImmunity', (data) => {
+      this.playerImmunitySubject.next(data);
+    });
   }
 
   connect() {
@@ -79,11 +100,19 @@ export class GameService {
     this.socket.emit('shoot', { x, y, angle });
   }
 
+  selectUpgrade(upgradeId: string) {
+    this.socket.emit('selectUpgrade', upgradeId);
+  }
+
   getPlayerId(): string | null {
     return this.playerId;
   }
 
-  onGameState(): Observable<{ players: Player[], bullets: Bullet[] }> {
+  getSocket(): Socket {
+    return this.socket;
+  }
+
+  onGameState(): Observable<{ players: Player[], bullets: Bullet[], orbs: Orb[] }> {
     return this.gameStateSubject.asObservable();
   }
 
@@ -95,7 +124,7 @@ export class GameService {
     return this.playerLeftSubject.asObservable();
   }
 
-  onPlayerMoved(): Observable<any> {
+  onPlayerMoved(): Observable<Player | null> {
     return this.playerMovedSubject.asObservable();
   }
 
@@ -105,5 +134,21 @@ export class GameService {
 
   onBulletRemoved(): Observable<string | null> {
     return this.bulletRemovedSubject.asObservable();
+  }
+
+  onOrbSpawned(): Observable<Orb | null> {
+    return this.orbSpawnedSubject.asObservable();
+  }
+
+  onOrbCollected(): Observable<string | null> {
+    return this.orbCollectedSubject.asObservable();
+  }
+
+  onLevelUpOptions(): Observable<Upgrade[] | null> {
+    return this.levelUpOptionsSubject.asObservable();
+  }
+
+  onPlayerImmunity(): Observable<{id: string, immuneUntil: number} | null> {
+    return this.playerImmunitySubject.asObservable();
   }
 }

@@ -1,42 +1,115 @@
 <div class="game-container">
-  <div class="game-header">
-    <h1>🎮 Tiny Tanks Time</h1>
-    <div class="game-info">
-      <p>Players: {{ players.length }}</p>
-      <p>Bullets: {{ bullets.length }}</p>
-    </div>
-  </div>
-
-  <div class="game-area" *ngIf="gameStarted; else startScreen">
-    <div class="game-field">
+  <div class="game-area" *ngIf="gameStarted; else startScreen" #gameArea>
+    <div
+      class="game-field"
+      [style.width.px]="worldWidth"
+      [style.height.px]="worldHeight"
+      [style.transform]="cameraTransform"
+    >
       <!-- Players -->
-      <div 
-        *ngFor="let player of players" 
+      <!-- Players -->
+      <div
+        *ngFor="let player of players"
         class="tank"
         [style.left.px]="player.x - 25"
         [style.top.px]="player.y - 25"
-        [style.transform]="'rotate(' + (player.angle * 180 / Math.PI) + 'deg)'"
-        [style.background-color]="player.color"
         [class.current-player]="player.id === currentPlayer?.id"
       >
-        <div class="tank-body"></div>
-        <div class="tank-cannon"></div>
+        <!-- Tank Rotator (Body + Cannon) -->
+        <div
+          class="tank-rotator"
+          [style.transform]="
+            'rotate(' + ((player.angle * 180) / Math.PI + 90) + 'deg)'
+          "
+        >
+          <div class="tank-cannon"></div>
+          <div class="tank-body" [style.background-color]="player.color"></div>
+        </div>
+
+        <!-- HP Bar (Only for current player) -->
+        <div class="hp-bar-container" *ngIf="player.id === currentPlayer?.id">
+          <div
+            class="hp-bar"
+            [style.width.%]="(player.hp / player.maxHp) * 100"
+          ></div>
+        </div>
+
+        <!-- Immunity Shield -->
+        <div class="immunity-shield" *ngIf="isImmune(player)"></div>
       </div>
+
+      <!-- Obstacles -->
+      <div
+        *ngFor="let o of obstacles"
+        class="obstacle"
+        [style.left.px]="o.x"
+        [style.top.px]="o.y"
+        [style.width.px]="o.width"
+        [style.height.px]="o.height"
+      ></div>
 
       <!-- Bullets -->
       <div 
         *ngFor="let bullet of bullets" 
         class="bullet"
-        [style.left.px]="bullet.x - 3"
-        [style.top.px]="bullet.y - 3"
-        [style.transform]="'rotate(' + (bullet.angle * 180 / Math.PI) + 'deg)'"
+        [style.left.px]="bullet.x - 4"
+        [style.top.px]="bullet.y - 4"
+      ></div>
+
+      <!-- Orbs -->
+      <div 
+        *ngFor="let orb of orbs" 
+        class="orb"
+        [style.left.px]="orb.x - 5"
+        [style.top.px]="orb.y - 5"
       ></div>
     </div>
 
     <div class="controls">
       <h3>Controls:</h3>
-      <p>WASD or Arrow Keys - Move</p>
+      <p>WASD - Move</p>
+      <p>Mouse - Aim</p>
       <p>Space - Shoot</p>
+    </div>
+
+    <div class="game-info">
+      <h2>🎮 Tiny Tanks Time</h2>
+      <p>Players: {{ players.length }}</p>
+      <p>Bullets: {{ bullets.length }}</p>
+    </div>
+
+    <!-- EXP Bar -->
+    <div class="exp-container" *ngIf="currentPlayer">
+      <div class="level-badge">Lvl {{ currentPlayer.level }}</div>
+      <div class="exp-bar-bg">
+        <div
+          class="exp-bar-fill"
+          [style.width.%]="(currentPlayer.exp / currentPlayer.maxExp) * 100"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Level Up Modal -->
+    <div class="level-up-modal" *ngIf="levelUpOptions">
+      <h2>LEVEL UP!</h2>
+      <div class="cards-container">
+        <div 
+          *ngFor="let upgrade of levelUpOptions; let i = index" 
+          class="upgrade-card"
+          [class.common]="upgrade.rarity === 'Common'"
+          [class.rare]="upgrade.rarity === 'Rare'"
+          [class.epic]="upgrade.rarity === 'Epic'"
+          [class.legendary]="upgrade.rarity === 'Legendary'"
+          (click)="selectUpgrade(upgrade)"
+          tabindex="0"
+          role="button"
+        >
+          <div class="key-hint">{{ i + 1 }}</div>
+          <div class="rarity-label">{{ upgrade.rarity }}</div>
+          <h3>{{ upgrade.name }}</h3>
+          <p>{{ upgrade.description }}</p>
+        </div>
+      </div>
     </div>
   </div>
 
