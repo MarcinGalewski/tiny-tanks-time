@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/dist/apps/server ./dist/server
 COPY --from=builder /app/package.json /app/package-lock.json ./
 
-# Copy frontend dist
-COPY --from=builder /app/dist/apps/tiny-tanks-time/browser ./public/frontend
+# Copy frontend dist to nginx root
+COPY --from=builder /app/dist/apps/tiny-tanks-time/browser /app/public/frontend
 
 # Copy Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
