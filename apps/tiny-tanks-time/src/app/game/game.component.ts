@@ -56,6 +56,7 @@ export class GameComponent implements OnInit, OnDestroy {
   keys: { [key: string]: boolean } = {};
   gameStarted = false;
   private mouseAngle: number | null = null;
+  private mousePressed = false;
   private readonly BULLET_SPEED = 360; // px/sec
   private readonly SHOOT_COOLDOWN_MS = 300; // adjust as desired
   private lastShotAt = 0;
@@ -236,25 +237,21 @@ export class GameComponent implements OnInit, OnDestroy {
     let newY = this.currentPlayer.y;
     const newAngle = this.mouseAngle ?? this.currentPlayer.angle;
 
-    // Movement Vector
+    // Movement Vector (fixed axis)
     let dx = 0;
     let dy = 0;
 
     if (this.keys['w'] || this.keys['arrowup']) {
-      dx += Math.cos(newAngle);
-      dy += Math.sin(newAngle);
+      dy -= 1; // move up
     }
     if (this.keys['s'] || this.keys['arrowdown']) {
-      dx -= Math.cos(newAngle);
-      dy -= Math.sin(newAngle);
+      dy += 1; // move down
     }
     if (this.keys['a'] || this.keys['arrowleft']) {
-      dx += Math.cos(newAngle - Math.PI / 2);
-      dy += Math.sin(newAngle - Math.PI / 2);
+      dx -= 1; // move left
     }
     if (this.keys['d'] || this.keys['arrowright']) {
-      dx += Math.cos(newAngle + Math.PI / 2);
-      dy += Math.sin(newAngle + Math.PI / 2);
+      dx += 1; // move right
     }
 
     // Normalize vector if moving diagonally
@@ -274,7 +271,7 @@ export class GameComponent implements OnInit, OnDestroy {
     }
 
     // Shoot
-    if (this.keys[' ']) {
+    if (this.keys[' '] || this.mousePressed) {
       this.shoot();
     }
 
@@ -317,6 +314,16 @@ export class GameComponent implements OnInit, OnDestroy {
     const dx = event.clientX - centerX;
     const dy = event.clientY - centerY;
     this.mouseAngle = Math.atan2(dy, dx);
+  }
+
+  @HostListener('window:mousedown', ['$event'])
+  onMouseDown(event: MouseEvent) {
+    this.mousePressed = true;
+  }
+
+  @HostListener('window:mouseup', ['$event'])
+  onMouseUp(event: MouseEvent) {
+    this.mousePressed = false;
   }
 
   private updateBullets(dt: number) {
