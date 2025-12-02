@@ -9,12 +9,12 @@ RUN rm -rf .nx
 # Build both frontend and backend
 RUN npm run build
 
-# Production stage - single image serving both backend and frontend
+# Production stage - Nginx reverse proxy + Node backend
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install http-server for frontend serving
-RUN npm install -g http-server
+# Install Nginx
+RUN apk add --no-cache nginx
 
 # Copy backend dist and dependencies
 COPY --from=builder /app/dist/apps/server ./dist/server
@@ -23,11 +23,14 @@ COPY --from=builder /app/package.json /app/package-lock.json ./
 # Copy frontend dist
 COPY --from=builder /app/dist/apps/tiny-tanks-time/browser ./public/frontend
 
+# Copy Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Install production dependencies only
 RUN npm ci --omit=dev
 
-# Expose ports
-EXPOSE 3000 4200
+# Expose port 8080 (Railway default port)
+EXPOSE 8080
 
-# Start both backend and frontend
-CMD ["sh", "-c", "node dist/server/main.js & http-server ./public/frontend -p 4200 -g && wait"]
+# Start Nginx and Node backend
+CMD ["sh", "-c", "nginx -g 'daemon off;' & node dist/server/main.js & wait"]

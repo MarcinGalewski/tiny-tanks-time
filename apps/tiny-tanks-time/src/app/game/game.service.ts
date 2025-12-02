@@ -167,9 +167,10 @@ export class GameService {
         return 'http://localhost:3000';
       }
       
-      // For production (Railway, etc), connect to the same host
-      // The backend runs on the same domain, so just use current protocol and host
-      return `${protocol}//${hostname}:3000`;
+      // For production on Railway or similar platforms:
+      // Both backend and frontend run on the same domain
+      // Use the current domain without specifying port 3000
+      return `${protocol}//${hostname}`;
     }
     
     // Fallback for SSR or non-browser environments
