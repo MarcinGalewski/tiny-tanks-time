@@ -1,7 +1,7 @@
 # Build stage
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
@@ -15,7 +15,7 @@ RUN npm install -g http-server
 
 # Copy backend dist and dependencies
 COPY --from=builder /app/dist/apps/server ./dist/server
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/package.json /app/package-lock.json ./
 
 # Copy frontend dist
 COPY --from=builder /app/dist/apps/tiny-tanks-time/browser ./public/frontend
