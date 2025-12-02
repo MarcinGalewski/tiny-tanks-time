@@ -34,4 +34,5 @@ RUN npm ci --omit=dev --prefer-offline --no-audit
 EXPOSE 8080
 
 # Start Nginx and Node backend
-CMD ["sh", "-c", "nginx -g 'daemon off;' & node dist/server/main.js & wait"]
+# Nginx listens on 8080, Node backend listens on 3000 (internal only)
+CMD ["sh", "-c", "nginx -g 'daemon off;' & PORT=3000 node dist/server/main.js & wait"]
