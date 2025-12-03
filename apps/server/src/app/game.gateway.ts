@@ -66,9 +66,14 @@ export interface GameState {
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.CLIENT_ORIGIN || '*',
+    methods: ['GET', 'POST'],
+    credentials: false,
   },
+  transports: ['websocket'],
+  path: '/socket.io/',
 })
+
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;

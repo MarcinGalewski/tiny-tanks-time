@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { Player, Bullet, Orb, Upgrade } from './game.component';
+import { environment } from '../enironments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -27,20 +28,22 @@ export class GameService {
   private playerImmunitySubject = new BehaviorSubject<{id: string, immuneUntil: number} | null>(null);
 
   constructor() {
-    // Determine the backend URL based on environment
-    const backendUrl = this.getBackendUrl();
-    
+    const backendUrl = environment.backendUrl;
+
     this.socket = io(backendUrl, {
-      transports: ['websocket']
+      transports: ['websocket'],
+      path: '/socket.io/',
+      withCredentials: false,
+      secure: backendUrl.startsWith('https')
     });
 
     this.socket.on('connect', () => {
-      console.log('Connected to game server at', backendUrl);
+      console.log('Connected to backend:', backendUrl);
       this.playerId = this.socket.id || null;
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Disconnected from game server');
+      console.log('Disconnected from backend');
       this.playerId = null;
     });
 
@@ -154,27 +157,4 @@ export class GameService {
   onPlayerImmunity(): Observable<{id: string, immuneUntil: number} | null> {
     return this.playerImmunitySubject.asObservable();
   }
-
-  private getBackendUrl(): string {
-    // In production, use the current domain
-    // In development, use localhost:3000
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const protocol = window.location.protocol;
-      
-      // If running on localhost or 127.0.0.1, use localhost:3000
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3000';
-      }
-      
-      // For production on Railway or similar platforms:
-      // Both backend and frontend run on the same domain
-      // Use the current domain without specifying port 3000
-      return `${protocol}//${hostname}`;
-    }
-    
-    // Fallback for SSR or non-browser environments
-    return 'http://localhost:3000';
-  }
 }
-
