@@ -49,10 +49,11 @@
   top: 0;
   left: 0;
   /* width/height set by inline style */
-  background: 
+  background:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    #2c2c2c; /* Grayscale map */
+    #2c2c2c;
+  /* Grayscale map */
   background-size: 50px 50px;
   border: 3px solid #4a4a4a;
   /* margin: 1rem; removed */
@@ -120,6 +121,128 @@
   border-color: #ffffff;
 }
 
+/* Cannon Variations */
+.tank-cannon.double-left {
+  left: 35%;
+}
+
+.tank-cannon.double-right {
+  left: 65%;
+}
+
+.tank-cannon.rear {
+  transform: translate(-50%, 0);
+  top: auto;
+  bottom: 50%;
+  height: 28px;
+  width: 8px;
+  /* Slightly thicker */
+  background: linear-gradient(to top, #9e9e9e, #607d8b);
+  border: 1px solid #455a64;
+  box-shadow: 0 0 10px rgba(96, 125, 139, 0.5), 0 0 5px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.current-player .tank-cannon.rear {
+  background: linear-gradient(to top, #e0e0e0, #90a4ae);
+  border-color: #cfd8dc;
+  box-shadow: 0 0 15px rgba(144, 164, 174, 0.6);
+}
+
+/* Rear Guard Plate Improvement */
+.rear-guard-plate {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 12px;
+  background: #455a64;
+  border: 2px solid #263238;
+  border-radius: 4px;
+  transform: translate(-50%, 50%);
+  /* Position at the back base */
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.has-rear-guard .tank-body {
+  border-bottom: 4px solid #34495e;
+  /* Thicker back armor */
+}
+
+/* Muzzle Flash */
+.muzzle-flash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 25px;
+  height: 25px;
+  background: radial-gradient(circle, #f1c40f 0%, rgba(243, 156, 18, 0.8) 40%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -180%);
+  /* At the tip of main cannon */
+  z-index: 20;
+  pointer-events: none;
+  animation: flash-grow 0.06s ease-out forwards;
+}
+
+.muzzle-flash.rear {
+  transform: translate(-50%, 80%);
+  /* At the tip of rear cannon */
+  background: radial-gradient(circle, #e67e22 0%, rgba(211, 84, 0, 0.8) 40%, transparent 70%);
+}
+
+@keyframes flash-grow {
+  0% {
+    transform: translate(-50%, -185%) scale(0.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -195%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes flash-grow-rear {
+  0% {
+    transform: translate(-50%, 85%) scale(0.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, 105%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+.muzzle-flash.rear {
+  animation: flash-grow-rear 0.06s ease-out forwards;
+}
+
+/* Titan Hull Visuals */
+.tank-body {
+  transition: all 0.3s ease;
+}
+
+.tank-body.titan-1 {
+  border-width: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+.tank-body.titan-2 {
+  border-width: 5px;
+  transform: scale(1.1);
+}
+
+.tank-body.titan-3 {
+  border-width: 6px;
+  transform: scale(1.2);
+  border-color: #fff;
+  /* Shiny armor */
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
 .immunity-shield {
   position: absolute;
   top: -10px;
@@ -135,8 +258,15 @@
 }
 
 @keyframes shield-pulse {
-  from { opacity: 0.6; transform: scale(0.95); }
-  to { opacity: 0.9; transform: scale(1.05); }
+  from {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
 }
 
 /* HP Bar */
@@ -155,8 +285,21 @@
 
 .hp-bar {
   height: 100%;
-  background: #e74c3c; /* Red for HP */
+  background: #e74c3c;
+  /* Red for HP */
   transition: width 0.2s ease;
+}
+
+.enemy-hp {
+  width: 40px;
+  height: 4px;
+  top: -10px;
+  border-color: rgba(0, 0, 0, 0.5);
+}
+
+.enemy-hp .hp-bar {
+  background: #f39c12;
+  /* Different color for enemies if needed, or stick to red */
 }
 
 /* EXP Bar */
@@ -193,7 +336,8 @@
 
 .exp-bar-fill {
   height: 100%;
-  background: #2ecc71; /* Green for EXP */
+  background: #2ecc71;
+  /* Green for EXP */
   border-radius: 10px;
   transition: width 0.3s ease;
 }
@@ -221,9 +365,20 @@
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 10px #f1c40f; }
-  50% { transform: scale(1.2); box-shadow: 0 0 15px #f1c40f; }
-  100% { transform: scale(1); box-shadow: 0 0 10px #f1c40f; }
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 10px #f1c40f;
+  }
+
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px #f1c40f;
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 10px #f1c40f;
+  }
 }
 
 .obstacle {
@@ -243,7 +398,8 @@
   backdrop-filter: blur(10px);
   border-radius: 8px;
   z-index: 100;
-  pointer-events: none; /* Let clicks pass through to map */
+  pointer-events: none;
+  /* Let clicks pass through to map */
 }
 
 .controls h3 {
@@ -359,8 +515,15 @@
 }
 
 @keyframes bounce {
-  from { transform: scale(0.5); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .cards-container {
@@ -388,7 +551,7 @@
 
 .upgrade-card:hover {
   transform: translateY(-10px) scale(1.05);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .rarity-label {
@@ -402,7 +565,8 @@
 .upgrade-card h3 {
   font-size: 1.5rem;
   margin: 1rem 0;
-  height: 3rem; /* Fixed height for alignment */
+  height: 3rem;
+  /* Fixed height for alignment */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,30 +583,54 @@
   border-color: #95a5a6;
   box-shadow: 0 0 15px rgba(149, 165, 166, 0.2);
 }
-.upgrade-card.common .rarity-label { color: #95a5a6; }
-.upgrade-card.common:hover { box-shadow: 0 0 25px rgba(149, 165, 166, 0.4); }
+
+.upgrade-card.common .rarity-label {
+  color: #95a5a6;
+}
+
+.upgrade-card.common:hover {
+  box-shadow: 0 0 25px rgba(149, 165, 166, 0.4);
+}
 
 .upgrade-card.rare {
   border-color: #3498db;
   box-shadow: 0 0 15px rgba(52, 152, 219, 0.2);
 }
-.upgrade-card.rare .rarity-label { color: #3498db; }
-.upgrade-card.rare:hover { box-shadow: 0 0 25px rgba(52, 152, 219, 0.4); }
+
+.upgrade-card.rare .rarity-label {
+  color: #3498db;
+}
+
+.upgrade-card.rare:hover {
+  box-shadow: 0 0 25px rgba(52, 152, 219, 0.4);
+}
 
 .upgrade-card.epic {
   border-color: #9b59b6;
   box-shadow: 0 0 15px rgba(155, 89, 182, 0.2);
 }
-.upgrade-card.epic .rarity-label { color: #9b59b6; }
-.upgrade-card.epic:hover { box-shadow: 0 0 25px rgba(155, 89, 182, 0.4); }
+
+.upgrade-card.epic .rarity-label {
+  color: #9b59b6;
+}
+
+.upgrade-card.epic:hover {
+  box-shadow: 0 0 25px rgba(155, 89, 182, 0.4);
+}
 
 .upgrade-card.legendary {
   border-color: #f1c40f;
   box-shadow: 0 0 15px rgba(241, 196, 15, 0.2);
   background: linear-gradient(135deg, #2c3e50 0%, #2c2c2c 100%);
 }
-.upgrade-card.legendary .rarity-label { color: #f1c40f; }
-.upgrade-card.legendary:hover { box-shadow: 0 0 35px rgba(241, 196, 15, 0.6); }
+
+.upgrade-card.legendary .rarity-label {
+  color: #f1c40f;
+}
+
+.upgrade-card.legendary:hover {
+  box-shadow: 0 0 35px rgba(241, 196, 15, 0.6);
+}
 
 /* Key hint indicator */
 .key-hint {
@@ -465,6 +653,7 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
+<<<<<<< HEAD
 .enemy {
   position: absolute;
   background-color: #ff4757;
@@ -489,3 +678,311 @@
     background: #ff6b81;
     border-radius: 2px;
 }
+=======
+/* Upgrades Dashboard */
+.upgrades-dashboard {
+  position: absolute;
+  top: 250px;
+  right: 1rem;
+  width: 260px;
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.upgrades-dashboard h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.upgrades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  max-height: 30vh;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Stats Dashboard */
+.stats-dashboard {
+  position: absolute;
+  top: 250px;
+  left: 1rem;
+  width: 200px;
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.stats-dashboard h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
+.stat-label {
+  color: #aaa;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
+
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.obtained-upgrade-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0.8rem;
+  border-left: 4px solid #555;
+  /* Default */
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.obtained-upgrade-item:hover {
+  transform: translateX(-2px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.upgrade-name {
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #eee;
+}
+
+.upgrade-desc {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Rarity Colors for Dashboard Items */
+.obtained-upgrade-item.common {
+  border-left-color: #95a5a6;
+}
+
+.obtained-upgrade-item.rare {
+  border-left-color: #3498db;
+}
+
+.obtained-upgrade-item.epic {
+  border-left-color: #9b59b6;
+  background: linear-gradient(90deg, rgba(155, 89, 182, 0.1), rgba(255, 255, 255, 0.05));
+}
+
+.obtained-upgrade-item.legendary {
+  border-left-color: #f1c40f;
+  background: linear-gradient(90deg, rgba(241, 196, 15, 0.1), rgba(255, 255, 255, 0.05));
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.05);
+}
+
+/* Death Modal */
+.death-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(44, 0, 0, 0.85);
+  /* Dark reddish background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.death-content {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 20px;
+  border: 2px solid #e74c3c;
+  box-shadow: 0 0 50px rgba(231, 76, 60, 0.3);
+  max-width: 500px;
+  width: 90%;
+  transform: scale(1);
+  animation: deathScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes deathScale {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.death-title {
+  font-size: 4rem;
+  color: #e74c3c;
+  text-shadow: 0 0 20px rgba(231, 76, 60, 0.6), 2px 2px 0px #000;
+  margin-bottom: 1rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 900;
+  letter-spacing: 4px;
+}
+
+.death-stats {
+  font-size: 1.5rem;
+  color: #eee;
+  margin-bottom: 3rem;
+  opacity: 0.9;
+}
+
+.death-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.death-button {
+  padding: 1.2rem 2.5rem;
+  font-size: 1.3rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.death-button .btn-icon {
+  font-size: 1.5rem;
+}
+
+.play-again {
+  background: linear-gradient(45deg, #e74c3c, #c0392b);
+  color: white;
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
+.play-again:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(231, 76, 60, 0.6);
+}
+
+.main-menu {
+  background: rgba(255, 255, 255, 0.1);
+  color: #eee;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.main-menu:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px);
+  color: white;
+}
+
+.death-button:active {
+  transform: translateY(0);
+}
+>>>>>>> c3a0aff (stats, upgrades, bots)

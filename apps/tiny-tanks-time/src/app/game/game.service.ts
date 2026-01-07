@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { Player, Bullet, Orb, Upgrade, Enemy } from './game.component';
 import { environment } from '../enironments/environment';
@@ -25,7 +25,8 @@ export class GameService {
   private orbSpawnedSubject = new BehaviorSubject<Orb | null>(null);
   private orbCollectedSubject = new BehaviorSubject<string | null>(null);
   private levelUpOptionsSubject = new BehaviorSubject<Upgrade[] | null>(null);
-  private playerImmunitySubject = new BehaviorSubject<{id: string, immuneUntil: number} | null>(null);
+  private playerImmunitySubject = new BehaviorSubject<{ id: string, immuneUntil: number } | null>(null);
+  private playerDiedSubject = new Subject<void>();
   private playerExpUpdateSubject = new BehaviorSubject<any | null>(null);
 
   constructor() {
@@ -88,6 +89,10 @@ export class GameService {
       this.playerImmunitySubject.next(data);
     });
 
+    this.socket.on('playerDied', () => {
+      this.playerDiedSubject.next();
+    });
+
     this.socket.on('playerExpUpdate', (data) => {
       this.playerExpUpdateSubject.next(data);
     });
@@ -113,6 +118,10 @@ export class GameService {
 
   selectUpgrade(upgradeId: string) {
     this.socket.emit('selectUpgrade', upgradeId);
+  }
+
+  respawn() {
+    this.socket.emit('respawn');
   }
 
   debugLevelUp() {
@@ -163,10 +172,14 @@ export class GameService {
     return this.levelUpOptionsSubject.asObservable();
   }
 
-  onPlayerImmunity(): Observable<{id: string, immuneUntil: number} | null> {
+  onPlayerImmunity(): Observable<{ id: string, immuneUntil: number } | null> {
     return this.playerImmunitySubject.asObservable();
   }
-  
+
+  onPlayerDied(): Observable<void | null> {
+    return this.playerDiedSubject.asObservable();
+  }
+
   onPlayerExpUpdate(): Observable<any | null> {
     return this.playerExpUpdateSubject.asObservable();
   }
@@ -180,13 +193,13 @@ export class GameService {
 
   onEnemiesMoved(): Observable<Enemy[] | null> {
     return new Observable(observer => {
-        this.socket.on('enemiesMoved', (enemies) => observer.next(enemies));
+      this.socket.on('enemiesMoved', (enemies) => observer.next(enemies));
     });
   }
 
   onEnemyDied(): Observable<string | null> {
     return new Observable(observer => {
-        this.socket.on('enemyDied', (id) => observer.next(id));
+      this.socket.on('enemyDied', (id) => observer.next(id));
     });
   }
 }

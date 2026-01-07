@@ -1,38 +1,46 @@
 <div class="game-container">
   <div class="game-area" *ngIf="gameStarted; else startScreen" #gameArea>
-    <div
-      class="game-field"
-      [style.width.px]="worldWidth"
-      [style.height.px]="worldHeight"
-      [style.transform]="cameraTransform"
-    >
+    <div class="game-field" [style.width.px]="worldWidth" [style.height.px]="worldHeight"
+      [style.transform]="cameraTransform">
       <!-- Players -->
       <!-- Players -->
-      <div
-        *ngFor="let player of players"
-        class="tank"
-        [style.left.px]="player.x - 25"
-        [style.top.px]="player.y - 25"
+      <div *ngFor="let player of players" class="tank" [style.left.px]="player.x - 25" [style.top.px]="player.y - 25"
         [class.current-player]="player.id === currentPlayer?.id"
-      >
+        [class.has-rear-guard]="!player.isBot && player.stats?.rearGuard">
         <!-- Tank Rotator (Body + Cannon) -->
-        <div
-          class="tank-rotator"
-          [style.transform]="
+        <div class="tank-rotator" [class.shooting-recoil]="isShooting(player)" [style.transform]="
             'rotate(' + ((player.angle * 180) / Math.PI + 90) + 'deg)'
-          "
-        >
-          <div class="tank-cannon"></div>
-          <div class="tank-cannon rear" *ngIf="player.stats.rearGuard"></div>
-          <div class="tank-body" [style.background-color]="player.color"></div>
+          ">
+          <!-- Rear Guard Plate -->
+          <div class="rear-guard-plate" *ngIf="!player.isBot && player.stats?.rearGuard"></div>
+
+          <!-- Muzzle Flashes -->
+          <div class="muzzle-flash" *ngIf="isShooting(player)"></div>
+          <div class="muzzle-flash rear" *ngIf="!player.isBot && isShooting(player) && player.stats?.rearGuard"></div>
+
+          <!-- Standard Cannon / Double Barrel -->
+          <ng-container *ngIf="player.isBot || !player.stats || player.stats.bulletCount === 1">
+            <div class="tank-cannon"></div>
+          </ng-container>
+
+          <ng-container *ngIf="!player.isBot && player.stats && player.stats.bulletCount > 1">
+            <div class="tank-cannon double-left"></div>
+            <div class="tank-cannon double-right"></div>
+          </ng-container>
+
+          <!-- Rear Guard Cannon -->
+          <div class="tank-cannon rear" *ngIf="!player.isBot && player.stats && player.stats.rearGuard"></div>
+
+          <!-- Body -->
+          <div class="tank-body" [style.background-color]="player.color"
+            [class.titan-1]="!player.isBot && player.maxHp >= 120 && player.maxHp < 160"
+            [class.titan-2]="!player.isBot && player.maxHp >= 160 && player.maxHp < 240"
+            [class.titan-3]="!player.isBot && player.maxHp >= 240"></div>
         </div>
 
-        <!-- HP Bar (Only for current player) -->
-        <div class="hp-bar-container" *ngIf="player.id === currentPlayer?.id">
-          <div
-            class="hp-bar"
-            [style.width.%]="(player.hp / player.maxHp) * 100"
-          ></div>
+        <!-- HP Bar -->
+        <div class="hp-bar-container" [class.enemy-hp]="player.id !== currentPlayer?.id">
+          <div class="hp-bar" [style.width.%]="(player.hp / player.maxHp) * 100"></div>
         </div>
 
         <!-- Immunity Shield -->
@@ -40,42 +48,22 @@
       </div>
 
       <!-- Obstacles -->
-      <div
-        *ngFor="let o of obstacles"
-        class="obstacle"
-        [style.left.px]="o.x"
-        [style.top.px]="o.y"
-        [style.width.px]="o.width"
-        [style.height.px]="o.height"
-      ></div>
+      <div *ngFor="let o of obstacles" class="obstacle" [style.left.px]="o.x" [style.top.px]="o.y"
+        [style.width.px]="o.width" [style.height.px]="o.height"></div>
 
       <!-- Bullets -->
-      <div 
-        *ngFor="let bullet of bullets" 
-        class="bullet"
-        [style.left.px]="bullet.x - 4"
-        [style.top.px]="bullet.y - 4"
-      ></div>
+      <div *ngFor="let bullet of bullets" class="bullet" [style.left.px]="bullet.x - 4" [style.top.px]="bullet.y - 4">
+      </div>
 
       <!-- Orbs -->
-      <div 
-        *ngFor="let orb of orbs" 
-        class="orb"
-        [style.left.px]="orb.x - 5"
-        [style.top.px]="orb.y - 5"
-      ></div>
+      <div *ngFor="let orb of orbs" class="orb" [style.left.px]="orb.x - 5" [style.top.px]="orb.y - 5"></div>
+
       <!-- Enemies -->
-      <div
-        *ngFor="let enemy of enemies; trackBy: trackByFn"
-        class="enemy"
-        [style.left.px]="enemy.x - enemy.size/2"
-        [style.top.px]="enemy.y - enemy.size/2"
-        [style.width.px]="enemy.size"
-        [style.height.px]="enemy.size"
-      >
-          <div class="enemy-hp-bar">
-              <div class="enemy-hp-fill" [style.width.%]="(enemy.hp / enemy.maxHp) * 100"></div>
-          </div>
+      <div *ngFor="let enemy of enemies; trackBy: trackByFn" class="enemy" [style.left.px]="enemy.x - enemy.size/2"
+        [style.top.px]="enemy.y - enemy.size/2" [style.width.px]="enemy.size" [style.height.px]="enemy.size">
+        <div class="enemy-hp-bar">
+          <div class="enemy-hp-fill" [style.width.%]="(enemy.hp / enemy.maxHp) * 100"></div>
+        </div>
       </div>
     </div>
 
@@ -90,7 +78,8 @@
       <h2>🎮 Tiny Tanks Time</h2>
       <p>Players: {{ players.length }}</p>
       <p>Bullets: {{ bullets.length }}</p>
-      <button (click)="triggerDebugLevelUp()" style="margin-top:10px; padding: 5px 10px; background: #ff4757; color: white; border: none; border-radius: 4px; cursor: pointer; pointer-events: auto; position: relative; z-index: 200;">
+      <button (click)="triggerDebugLevelUp()"
+        style="margin-top:10px; padding: 5px 10px; background: #ff4757; color: white; border: none; border-radius: 4px; cursor: pointer; pointer-events: auto; position: relative; z-index: 200;">
         DEBUG: Level Up
       </button>
     </div>
@@ -99,10 +88,52 @@
     <div class="exp-container" *ngIf="currentPlayer">
       <div class="level-badge">Lvl {{ currentPlayer.level }}</div>
       <div class="exp-bar-bg">
-        <div
-          class="exp-bar-fill"
-          [style.width.%]="(currentPlayer.exp / currentPlayer.maxExp) * 100"
-        ></div>
+        <div class="exp-bar-fill" [style.width.%]="(currentPlayer.exp / currentPlayer.maxExp) * 100"></div>
+      </div>
+    </div>
+
+    <!-- Stats Dashboard -->
+    <div class="stats-dashboard" *ngIf="currentPlayer && currentPlayer.stats">
+      <h3>Tank Stats</h3>
+      <div class="stat-row">
+        <span class="stat-label">HP</span>
+        <span class="stat-value">{{ Math.round(currentPlayer.maxHp) }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Damage</span>
+        <span class="stat-value">{{ Math.round(currentPlayer.stats.bulletDamage) }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Speed</span>
+        <span class="stat-value">{{ Math.round(currentPlayer.stats.moveSpeed) }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Fire Rate</span>
+        <span class="stat-value">{{ Math.round(currentPlayer.stats.fireRate) }}ms</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Regen</span>
+        <span class="stat-value">{{ currentPlayer.stats.regen || 0 }}/s</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Range</span>
+        <span class="stat-value">{{ Math.round(currentPlayer.stats.pickupRange) }}</span>
+      </div>
+    </div>
+
+    <!-- Upgrades Dashboard -->
+    <div class="upgrades-dashboard"
+      *ngIf="currentPlayer && currentPlayer.upgrades && currentPlayer.upgrades.length > 0">
+      <h3>Obtained Upgrades</h3>
+      <div class="upgrades-list custom-scrollbar">
+        <div *ngFor="let upgrade of currentPlayer.upgrades" class="obtained-upgrade-item"
+          [class.common]="upgrade.rarity === 'Common'" [class.rare]="upgrade.rarity === 'Rare'"
+          [class.epic]="upgrade.rarity === 'Epic'" [class.legendary]="upgrade.rarity === 'Legendary'">
+          <div class="item-header">
+            <span class="upgrade-name">{{ upgrade.name }}</span>
+          </div>
+          <p class="upgrade-desc">{{ upgrade.description }}</p>
+        </div>
       </div>
     </div>
 
@@ -110,21 +141,32 @@
     <div class="level-up-modal" *ngIf="levelUpOptions">
       <h2>LEVEL UP!</h2>
       <div class="cards-container">
-        <div 
-          *ngFor="let upgrade of levelUpOptions; let i = index" 
-          class="upgrade-card"
-          [class.common]="upgrade.rarity === 'Common'"
-          [class.rare]="upgrade.rarity === 'Rare'"
-          [class.epic]="upgrade.rarity === 'Epic'"
-          [class.legendary]="upgrade.rarity === 'Legendary'"
-          (click)="selectUpgrade(upgrade)"
-          tabindex="0"
-          role="button"
-        >
+        <div *ngFor="let upgrade of levelUpOptions; let i = index" class="upgrade-card"
+          [class.common]="upgrade.rarity === 'Common'" [class.rare]="upgrade.rarity === 'Rare'"
+          [class.epic]="upgrade.rarity === 'Epic'" [class.legendary]="upgrade.rarity === 'Legendary'"
+          (click)="selectUpgrade(upgrade)" tabindex="0" role="button">
           <div class="key-hint">{{ i + 1 }}</div>
           <div class="rarity-label">{{ upgrade.rarity }}</div>
           <h3>{{ upgrade.name }}</h3>
           <p>{{ upgrade.description }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Death Modal -->
+    <div class="death-modal" *ngIf="isDead">
+      <div class="death-content">
+        <h1 class="death-title">YOU DIED!</h1>
+        <p class="death-stats" *ngIf="currentPlayer">
+          You reached Level {{ currentPlayer.level }}
+        </p>
+        <div class="death-buttons">
+          <button (click)="respawn()" class="death-button play-again">
+            <span class="btn-icon">🎮</span> Play Again
+          </button>
+          <button (click)="goToMainMenu()" class="death-button main-menu">
+            <span class="btn-icon">🏠</span> Main Menu
+          </button>
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ export interface PlayerStats {
   bulletLifeTime: number;
   spreadAngle: number;
   regenRate: number;
+  regen?: number; // legacy/unified
 }
 
 export interface Player {
@@ -28,7 +29,13 @@ export interface Player {
   level: number;
   maxExp: number;
   immuneUntil?: number;
-  stats: PlayerStats;
+  stats?: PlayerStats;
+  upgrades?: Upgrade[];
+  targetX?: number;
+  targetY?: number;
+  targetAngle?: number;
+  shootingUntil?: number;
+  isBot?: boolean;
 }
 
 export interface Bullet {
@@ -50,7 +57,7 @@ export interface Upgrade {
   id: string;
   name: string;
   description: string;
-  rarity: 'Common' | 'Rare' | 'Epic' | 'Legendary';
+  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
 }
 
 export interface Enemy {
@@ -71,7 +78,7 @@ export interface Enemy {
 })
 export class GameComponent implements OnInit, OnDestroy {
   @ViewChild('gameArea', { static: false }) gameArea?: ElementRef<HTMLDivElement>;
-  
+
   players: Player[] = [];
   bullets: Bullet[] = [];
   orbs: Orb[] = [];
@@ -80,38 +87,35 @@ export class GameComponent implements OnInit, OnDestroy {
   levelUpOptions: Upgrade[] | null = null;
   keys: { [key: string]: boolean } = {};
   gameStarted = false;
+  isDead = false;
   private mouseAngle: number | null = null;
   private mousePressed = false;
   private readonly BULLET_SPEED = 360; // px/sec
-  private readonly SHOOT_COOLDOWN_MS = 300; // adjust as desired
+  private readonly SHOOT_COOLDOWN_MS = 300;
   private lastShotAt = 0;
 
-  // timing
   private lastFrameTs: number | null = null;
 
-  // World and camera
   worldWidth = 4000;
   worldHeight = 4000;
   cameraTransform = '';
   private cameraOffsetX = 0;
   private cameraOffsetY = 0;
 
-  // Simple static obstacles
   obstacles: Array<{ x: number; y: number; width: number; height: number }> = [
     { x: 400, y: 300, width: 120, height: 40 },
     { x: 900, y: 600, width: 60, height: 200 },
     { x: 1400, y: 450, width: 200, height: 60 },
     { x: 700, y: 1100, width: 300, height: 40 },
   ];
-  
-  // Make Math available in template
+
   Math = Math;
 
-  constructor(private gameService: GameService) {}
+  constructor(private gameService: GameService) { }
 
   ngOnInit() {
     this.gameService.connect();
-    
+
     this.gameService.onGameState().subscribe((gameState) => {
       this.players = gameState.players;
       this.bullets = gameState.bullets;
@@ -131,17 +135,40 @@ export class GameComponent implements OnInit, OnDestroy {
 
     this.gameService.onPlayerMoved().subscribe((playerData) => {
       if (!playerData) return;
+      if (playerData.id === this.currentPlayer?.id) return;
+
       const player = this.players.find(p => p.id === playerData.id);
       if (player) {
-        player.x = playerData.x;
-        player.y = playerData.y;
-        player.angle = playerData.angle;
+        player.targetX = playerData.x;
+        player.targetY = playerData.y;
+        player.targetAngle = playerData.angle;
+
+        const dx = player.x - (player.targetX || player.x);
+        const dy = player.y - (player.targetY || player.y);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (!player.targetX || dist > 200) {
+          player.x = playerData.x;
+          player.y = playerData.y;
+          player.angle = playerData.angle;
+        }
+
+        player.hp = playerData.hp;
+        player.maxHp = playerData.maxHp;
+        player.exp = playerData.exp;
+        player.level = playerData.level;
+        player.maxExp = playerData.maxExp;
+        if (playerData.stats) player.stats = playerData.stats;
       }
     });
 
     this.gameService.onBulletShot().subscribe((bullet) => {
       if (bullet) {
         this.bullets.push(bullet);
+        const player = this.players.find(p => p.id === bullet.playerId);
+        if (player) {
+          player.shootingUntil = Date.now() + 60; // 60ms flash
+        }
       }
     });
 
@@ -165,12 +192,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
     this.gameService.onEnemiesMoved().subscribe((enemies) => {
       if (enemies) {
-          // Full sync or delta? Server sends full array currently
-          // Optimization: Update existing instances instead of replace to avoid flicker if Angular tracks by identity?
-          // Angular *ngFor trackBy:identifyEnemy helps.
-          // But for now, simple replace or update.
-          // Server sends ALL enemies.
-          this.enemies = enemies;
+        this.enemies = enemies;
       }
     });
 
@@ -186,14 +208,17 @@ export class GameComponent implements OnInit, OnDestroy {
       if (!data) return;
       const player = this.players.find(p => p.id === data.id);
       if (player) {
-         player.exp = data.exp;
-         player.maxExp = data.maxExp;
-         player.level = data.level;
-         player.hp = data.hp;
-         player.maxHp = data.maxHp;
-         if (data.stats) {
-            player.stats = data.stats;
-         }
+        player.exp = data.exp;
+        player.maxExp = data.maxExp;
+        player.level = data.level;
+        player.hp = data.hp;
+        player.maxHp = data.maxHp;
+        if (data.stats) {
+          player.stats = data.stats;
+        }
+        if (data.upgrades) {
+          player.upgrades = data.upgrades;
+        }
       }
     });
 
@@ -206,29 +231,20 @@ export class GameComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Listen for player updates (HP/EXP)
+    this.gameService.onPlayerDied().subscribe(() => {
+      this.isDead = true;
+    });
+
     this.gameService.getSocket().on('playerHit', (data: Player) => {
       const p = this.players.find(pl => pl.id === data.id);
       if (p) {
         p.hp = data.hp;
         p.maxHp = data.maxHp;
-        p.x = data.x;
-        p.y = data.y;
+        if (data.x !== undefined) p.x = data.x;
+        if (data.y !== undefined) p.y = data.y;
       }
     });
 
-    this.gameService.getSocket().on('playerExpUpdate', (data: Player) => {
-      const p = this.players.find(pl => pl.id === data.id);
-      if (p) {
-        p.exp = data.exp;
-        p.maxExp = data.maxExp;
-        p.level = data.level;
-        p.hp = data.hp;
-        p.maxHp = data.maxHp;
-      }
-    });
-
-    // Start game loop
     this.startGameLoop();
   }
 
@@ -240,8 +256,7 @@ export class GameComponent implements OnInit, OnDestroy {
   onKeyDown(event: KeyboardEvent) {
     const k = event.key.toLowerCase();
     this.keys[k] = true;
-    
-    // Handle upgrade selection with number keys
+
     if (this.levelUpOptions) {
       if (k === '1' && this.levelUpOptions[0]) {
         this.selectUpgrade(this.levelUpOptions[0]);
@@ -257,7 +272,7 @@ export class GameComponent implements OnInit, OnDestroy {
         return;
       }
     }
-    
+
     if (k === 'w' || k === 'a' || k === 's' || k === 'd' || k === ' ' || k === 'arrowup' || k === 'arrowdown' || k === 'arrowleft' || k === 'arrowright') {
       event.preventDefault();
     }
@@ -275,13 +290,14 @@ export class GameComponent implements OnInit, OnDestroy {
   startGameLoop() {
     const gameLoop = () => {
       const now = performance.now();
-      const dt = this.lastFrameTs == null ? 0 : Math.min((now - this.lastFrameTs) / 1000, 0.05); // cap dt
+      const dt = this.lastFrameTs == null ? 0 : Math.min((now - this.lastFrameTs) / 1000, 0.05);
       this.lastFrameTs = now;
 
       if (this.currentPlayer) {
         this.handleInput(dt);
         this.updateCamera(dt);
       }
+      this.updateOtherPlayers(dt);
       this.updateBullets(dt);
       requestAnimationFrame(gameLoop);
     };
@@ -289,38 +305,27 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   handleInput(dt: number) {
-    if (!this.currentPlayer) return;
+    if (!this.currentPlayer || this.isDead) return;
 
-    const speed = 240 * dt; // px/sec -> per frame distance
+    const speed = (this.currentPlayer.stats?.moveSpeed || 240) * dt;
     let newX = this.currentPlayer.x;
     let newY = this.currentPlayer.y;
     const newAngle = this.mouseAngle ?? this.currentPlayer.angle;
 
-    // Movement Vector (fixed axis)
     let dx = 0;
     let dy = 0;
 
-    if (this.keys['w'] || this.keys['arrowup']) {
-      dy -= 1; // move up
-    }
-    if (this.keys['s'] || this.keys['arrowdown']) {
-      dy += 1; // move down
-    }
-    if (this.keys['a'] || this.keys['arrowleft']) {
-      dx -= 1; // move left
-    }
-    if (this.keys['d'] || this.keys['arrowright']) {
-      dx += 1; // move right
-    }
+    if (this.keys['w'] || this.keys['arrowup']) dy -= 1;
+    if (this.keys['s'] || this.keys['arrowdown']) dy += 1;
+    if (this.keys['a'] || this.keys['arrowleft']) dx -= 1;
+    if (this.keys['d'] || this.keys['arrowright']) dx += 1;
 
-    // Normalize vector if moving diagonally
     if (dx !== 0 || dy !== 0) {
       const length = Math.sqrt(dx * dx + dy * dy);
       dx = (dx / length) * speed;
       dy = (dy / length) * speed;
     }
 
-    // Apply movement with collision check
     const nextX = newX + dx;
     const nextY = newY + dy;
 
@@ -329,34 +334,49 @@ export class GameComponent implements OnInit, OnDestroy {
       newY = nextY;
     }
 
-    // Shoot
     if (this.keys[' '] || this.mousePressed) {
       this.shoot();
     }
 
-    // Update player position
     this.currentPlayer.x = newX;
     this.currentPlayer.y = newY;
     this.currentPlayer.angle = newAngle;
 
-    // Send update to server
     this.gameService.movePlayer(newX, newY, newAngle);
   }
 
+  updateOtherPlayers(dt: number) {
+    const lerpT = Math.min(1, 15 * dt);
+
+    this.players.forEach(p => {
+      if (p.id === this.currentPlayer?.id) return;
+      if (p.targetX === undefined || p.targetY === undefined) return;
+
+      p.x += (p.targetX - p.x) * lerpT;
+      p.y += (p.targetY - p.y) * lerpT;
+
+      if (p.targetAngle !== undefined) {
+        let diff = p.targetAngle - p.angle;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        p.angle += diff * lerpT;
+      }
+    });
+  }
+
   shoot() {
-    if (!this.currentPlayer) return;
-    // Prevent shooting if level up modal is open? Or allow it? 
-    // Usually input is consumed by UI.
+    if (!this.currentPlayer || this.isDead) return;
     if (this.levelUpOptions) return;
 
+    const fireRate = this.currentPlayer.stats?.fireRate || this.SHOOT_COOLDOWN_MS;
     const now = Date.now();
-    const cooldown = this.currentPlayer.stats ? this.currentPlayer.stats.fireRate : this.SHOOT_COOLDOWN_MS;
-    if (now - this.lastShotAt < cooldown) return;
+    if (now - this.lastShotAt < fireRate) return;
     this.lastShotAt = now;
-    
+
+    // Use current angle for the tip position
     const bulletX = this.currentPlayer.x + Math.cos(this.currentPlayer.angle) * 40;
     const bulletY = this.currentPlayer.y + Math.sin(this.currentPlayer.angle) * 40;
-    
+
     this.gameService.shoot(bulletX, bulletY, this.currentPlayer.angle);
   }
 
@@ -371,8 +391,6 @@ export class GameComponent implements OnInit, OnDestroy {
   @HostListener('window:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
     if (!this.currentPlayer) return;
-    
-    // Calculate angle based on center of screen since camera follows player
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     const dx = event.clientX - centerX;
@@ -392,52 +410,45 @@ export class GameComponent implements OnInit, OnDestroy {
 
   private updateBullets(dt: number) {
     if (!this.bullets || this.bullets.length === 0) return;
-    // Update and collide with obstacles
     this.bullets = this.bullets.filter((bullet) => {
-      bullet.x += Math.cos(bullet.angle) * this.BULLET_SPEED * dt;
-      bullet.y += Math.sin(bullet.angle) * this.BULLET_SPEED * dt;
+      const speed = this.BULLET_SPEED; // Basic client prediction
+      bullet.x += Math.cos(bullet.angle) * speed * dt;
+      bullet.y += Math.sin(bullet.angle) * speed * dt;
 
       for (const o of this.obstacles) {
         if (bullet.x >= o.x && bullet.x <= o.x + o.width && bullet.y >= o.y && bullet.y <= o.y + o.height) {
-          return false; // remove bullet on obstacle hit
+          return false;
         }
       }
       return true;
     });
   }
 
-  
   private updateCamera(dt: number) {
     if (!this.currentPlayer) {
       this.cameraTransform = '';
       return;
     }
-    // Center field on current player in viewport
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     const targetOffsetX = centerX - this.currentPlayer.x;
     const targetOffsetY = centerY - this.currentPlayer.y;
-    const followT = Math.min(1, 12 * dt); // smoothing factor
+    const followT = Math.min(1, 12 * dt);
     this.cameraOffsetX += (targetOffsetX - this.cameraOffsetX) * followT;
     this.cameraOffsetY += (targetOffsetY - this.cameraOffsetY) * followT;
     this.cameraTransform = `translate3d(${this.cameraOffsetX}px, ${this.cameraOffsetY}px, 0)`;
   }
 
   private checkCollision(x: number, y: number, radius: number): boolean {
-    // Check map boundaries
     if (x < radius || x > this.worldWidth - radius || y < radius || y > this.worldHeight - radius) {
       return true;
     }
-
-    // Check obstacles
     for (const obs of this.obstacles) {
-      // Simple AABB vs Circle collision check (approximated)
       const closestX = Math.max(obs.x, Math.min(x, obs.x + obs.width));
       const closestY = Math.max(obs.y, Math.min(y, obs.y + obs.height));
       const distanceX = x - closestX;
       const distanceY = y - closestY;
       const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-
       if (distanceSquared < (radius * radius)) {
         return true;
       }
@@ -450,11 +461,25 @@ export class GameComponent implements OnInit, OnDestroy {
     this.levelUpOptions = null;
   }
 
+  respawn() {
+    this.gameService.respawn();
+    this.isDead = false;
+  }
+
+  goToMainMenu() {
+    this.gameStarted = false;
+    this.isDead = false;
+  }
+
   isImmune(player: Player): boolean {
     return !!player.immuneUntil && player.immuneUntil > Date.now();
   }
 
+  isShooting(player: Player): boolean {
+    return !!player.shootingUntil && player.shootingUntil > Date.now();
+  }
+
   trackByFn(index: number, item: { id: string }): string {
-    return item.id; 
+    return item.id;
   }
 }
