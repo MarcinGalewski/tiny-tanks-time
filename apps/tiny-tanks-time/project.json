@@ -27,8 +27,8 @@
         "production": {
           "fileReplacements": [
             {
-              "replace": "apps/tiny-tanks-time/src/environments/environment.ts",
-              "with": "apps/tiny-tanks-time/src/environments/environment.prod.ts"
+              "replace": "apps/tiny-tanks-time/src/app/enironments/environment.ts",,
+              "with": "apps/tiny-tanks-time/src/app/enironments/environment.prod.ts"
             }
           ],
           "budgets": [
