@@ -241,10 +241,35 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private respawnPlayer(player: Player) {
+    // Reset level, exp, and upgrades
+    player.level = 1;
+    player.exp = 0;
+    player.maxExp = 100;
+    player.upgrades = [];
+    player.pendingLevelUp = false;
+
+    // Reset stats to defaults
+    player.stats = {
+      maxHp: 100,
+      fireRate: player.isBot ? 800 : 300,
+      bulletCount: 1,
+      bulletDamage: player.isBot ? 8 : 10,
+      bulletSpeed: player.isBot ? 300 : 360,
+      moveSpeed: player.isBot ? 150 : 240,
+      pickupRange: 35,
+      rearGuard: false,
+      bulletLifeTime: 3000,
+      spreadAngle: 0,
+      regenRate: player.isBot ? 1 : 0
+    };
+
+    // Reset HP to new maxHp
+    player.maxHp = player.stats.maxHp;
     player.hp = player.maxHp;
+
+    // Respawn at random position
     player.x = Math.random() * 3800 + 100;
     player.y = Math.random() * 3800 + 100;
-    player.exp = Math.floor(player.exp * 0.5);
     player.immuneUntil = Date.now() + 3000;
 
     if (this.server) {
@@ -257,6 +282,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
       this.server.emit('playerMoved', { ...player });
       this.server.emit('playerImmunity', { id: player.id, immuneUntil: player.immuneUntil });
+      this.server.emit('playerExpUpdate', {
+        id: player.id,
+        exp: player.exp,
+        maxExp: player.maxExp,
+        level: player.level,
+        hp: player.hp,
+        maxHp: player.maxHp,
+        stats: player.stats,
+        upgrades: player.upgrades
+      });
     }
   }
 

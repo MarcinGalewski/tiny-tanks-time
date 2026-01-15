@@ -464,6 +464,10 @@ export class GameComponent implements OnInit, OnDestroy {
   respawn() {
     this.gameService.respawn();
     this.isDead = false;
+    if (this.currentPlayer) {
+      this.currentPlayer.level = 1;
+      this.currentPlayer.exp = 0;
+    }
   }
 
   goToMainMenu() {
